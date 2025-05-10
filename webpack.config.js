@@ -52,10 +52,6 @@ Encore
   // enables Sass/SCSS support
   .enableSassLoader()
   .enablePostCssLoader()
-  .addLoader({
-    test: /\.(png|jpg|svg|gif|eot|woff|woff2|ttf)$/,
-    use: ['url-loader']
-  })
   .autoProvidejQuery();
 
 module.exports = Encore.getWebpackConfig();
