@@ -11,7 +11,7 @@ services:
       - ec-cube
     networks:
       - backend
-      - default
+      - ars
     tty: true
     healthcheck:
       test: echo 'zap'
