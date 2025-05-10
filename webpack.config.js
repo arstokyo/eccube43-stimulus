@@ -10,12 +10,10 @@ if (!Encore.isRuntimeEnvironmentConfigured()) {
 Encore
   .setOutputPath('html/bundle/')
   .setPublicPath('/html/bundle')
-  .addEntry('ars', './html/template/ars/app.js')
+  .addEntry('ars', './html/template/ars/assets/js/bundle.js')
   .addEntry('admin', './html/template/admin/assets/js/bundle.js')
   .addEntry('install', './html/template/install/assets/js/bundle.js')
-  .addAliases({
-    jquery: path.join(__dirname, 'node_modules', 'jquery')
-  })
+  .addEntry('stimulus', './assets/app.js')
   // When enabled, Webpack "splits" your files into smaller pieces for greater optimization.
   .splitEntryChunks()
 
@@ -41,7 +39,7 @@ Encore
   .configureBabel(null)
 
   // enable stimulus bridge
-  .enableStimulusBridge('./html/template/ars/controllers.json')
+  .enableStimulusBridge('./assets/controllers.json')
 
   // enable TypeScript support
   .enableTypeScriptLoader()
