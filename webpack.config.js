@@ -56,16 +56,6 @@ Encore
     test: /\.(png|jpg|svg|gif|eot|woff|woff2|ttf)$/,
     use: ['url-loader']
   })
-  .addLoader({
-    test: /\.js$/,
-    exclude: /node_modules/,
-    use: {
-      loader: 'babel-loader',
-      options: {
-        presets: ['@babel/preset-env']
-      }
-    }
-  })
   .autoProvidejQuery();
 
 module.exports = Encore.getWebpackConfig();
