@@ -10,28 +10,39 @@ if (!Encore.isRuntimeEnvironmentConfigured()) {
 Encore
   .setOutputPath('html/bundle/')
   .setPublicPath('/html/bundle')
-  .addEntry('ars', './html/template/ars/assets/js/bundle.js')
+  .addEntry('ars', './html/template/ars/app.js')
   .addEntry('admin', './html/template/admin/assets/js/bundle.js')
   .addEntry('install', './html/template/install/assets/js/bundle.js')
-  .enableSingleRuntimeChunk()
-  .cleanupOutputBeforeBuild()
-  .enableSourceMaps(true)
-  .configureBabel(null)
   .addAliases({
     jquery: path.join(__dirname, 'node_modules', 'jquery')
   })
+  // When enabled, Webpack "splits" your files into smaller pieces for greater optimization.
+  .splitEntryChunks()
+
+  // will require an extra script tag for runtime.js
+  // but, you probably want this, unless you're building a single-page app
+  .enableSingleRuntimeChunk()
+  //.disableSingleRuntimeChunk()
+
+  /*
+   * FEATURE CONFIG
+   *
+   * Enable & configure other features below. For a full
+   * list of features, see:
+   * https://symfony.com/doc/current/frontend.html#adding-more-features
+   */
+  .cleanupOutputBeforeBuild()
   .enableBuildNotifications()
-  .enableVersioning(false)
-  .addLoader({
-    test: /\.css$/,
-    use: [
-      require('mini-css-extract-plugin').loader,
-      'css-loader'
-    ]
-  })
-  .addPlugin(new (require('mini-css-extract-plugin'))({
-    filename: '[name].css'
-  }))
+  .enableSourceMaps(!Encore.isProduction())
+  // enables hashed filenames (e.g. app.abc123.css)
+  .enableVersioning(Encore.isProduction())
+
+  // enables @babel/preset-env polyfills
+  .configureBabel(null)
+
+  // enables Sass/SCSS support
+  .enableSassLoader()
+  .enablePostCssLoader()
   .addLoader({
     test: /\.(png|jpg|svg|gif|eot|woff|woff2|ttf)$/,
     use: ['url-loader']
