@@ -20,7 +20,7 @@ file that was distributed with this source code.
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.2/css/v4-shims.css" integrity="sha384-XyvK/kKwgVW+fuRkusfLgfhAMuaxLPSOY8W7wj8tUkf0Nr2WGHniPmpdu+cmPS5n" crossorigin="anonymous">
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.css', 'admin') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/app.css', 'admin') }}">
-    <script src="{{ asset('admin.bundle.js', 'bundle') }}"></script>
+    {{ encore_entry_script_tags('admin') }}
     {% block stylesheet %}{% endblock %}
     <script>
         $(function() {

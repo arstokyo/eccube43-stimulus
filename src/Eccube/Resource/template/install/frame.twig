@@ -18,7 +18,7 @@ file that was distributed with this source code.
     <meta name="author" content="">
     <link rel="icon" href="{{ asset('img/common/favicon.ico', 'install') }}">
     <title>{{ 'install.title'|trans }}</title>
-    <script src="{{ asset('install.bundle.js', 'bundle') }}"></script>
+    {{ encore_entry_script_tags('install') }}
     <link href="{{ asset('assets/css/dashboard.css', 'install') }}" rel="stylesheet">
     <script src="{{ asset('assets/js/function.js', 'install') }}"></script>
 </head>
