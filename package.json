@@ -9,10 +9,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "echo \"Error: no clean specified\" && exit 1",
-    "build": "gulp",
+    "build-gulp": "gulp",
     "start": "gulp start",
     "prepare": "husky",
-    "watch": "webpack --watch"
+    "dev-server": "encore dev-server",
+    "dev": "encore dev",
+    "watch": "encore dev --watch",
+    "build": "encore production --progress"
   },
   "repository": {
     "type": "git",
@@ -53,6 +56,8 @@
   "devDependencies": {
     "@babel/core": "^7.24.5",
     "@babel/preset-env": "^7.26.0",
+    "@symfony/stimulus-bridge": "^4.0.1",
+    "@symfony/webpack-encore": "^5.1.0",
     "autoprefixer": "^9.6.4",
     "babel-loader": "^8.2.5",
     "browser-sync": "^3.0.3",
@@ -72,8 +77,10 @@
     "process": "^0.11.10",
     "sass": "^1.83.0",
     "sort-css-media-queries": "^1.4.3",
+    "stimulus": "^3.2.2",
     "webpack": "^5.96.1",
     "webpack-cli": "^4.9.2",
+    "webpack-notifier": "^1.15.0",
     "webpack-stream": "^7.0.0"
   }
 }
