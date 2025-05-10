@@ -40,6 +40,15 @@ Encore
   // enables @babel/preset-env polyfills
   .configureBabel(null)
 
+  // enable stimulus bridge
+  .enableStimulusBridge('./html/template/ars/controllers.json')
+
+  // enable TypeScript support
+  .enableTypeScriptLoader()
+
+  // uncomment to enable React support
+  //.enableReactPreset()
+
   // enables Sass/SCSS support
   .enableSassLoader()
   .enablePostCssLoader()
