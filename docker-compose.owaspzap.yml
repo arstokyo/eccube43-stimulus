@@ -16,5 +16,5 @@ services:
       - ec-cube
     networks:
       - backend
-      - default
+      - ars
     tty: true

@@ -11,7 +11,8 @@
     "clean": "echo \"Error: no clean specified\" && exit 1",
     "build": "gulp",
     "start": "gulp start",
-    "prepare": "husky"
+    "prepare": "husky",
+    "watch": "webpack --watch"
   },
   "repository": {
     "type": "git",
