@@ -44,6 +44,6 @@ webpack_encore:
 #    webpack_encore:
 #        strict_mode: false
 
-# When using the AssetMapperBundle, you should disable the asset mapper loader
+# Since we use webpack-encore-bundle instead of asset mapper, you should disable the asset mapper loader
 services:
     stimulus.asset_mapper.loader_javascript_compiler: null
