@@ -1,114 +1,206 @@
-# EC-CUBE 4.3
+# EC-CUBE 開発者ガイド
 
-[![Unit test for EC-CUBE](https://github.com/EC-CUBE/ec-cube/actions/workflows/unit-test.yml/badge.svg?branch=4.3)](https://github.com/EC-CUBE/ec-cube/actions/workflows/unit-test.yml)
-[![E2E test for EC-CUBE](https://github.com/EC-CUBE/ec-cube/actions/workflows/e2e-test.yml/badge.svg?branch=4.3)](https://github.com/EC-CUBE/ec-cube/actions/workflows/e2e-test.yml)
-[![Plugin test for EC-CUBE](https://github.com/EC-CUBE/ec-cube/actions/workflows/plugin-test.yml/badge.svg?branch=4.3)](https://github.com/EC-CUBE/ec-cube/actions/workflows/plugin-test.yml)
-[![PHPStan](https://github.com/EC-CUBE/ec-cube/actions/workflows/phpstan.yml/badge.svg?branch=4.3)](https://github.com/EC-CUBE/ec-cube/actions/workflows/phpstan.yml)
-[![codecov](https://codecov.io/gh/EC-CUBE/ec-cube/branch/4.3/graph/badge.svg?token=BhnPjjvfwd)](https://codecov.io/gh/EC-CUBE/ec-cube)
+## セットアップ手順
 
-[![Slack](https://img.shields.io/badge/slack-join%5fchat-brightgreen.svg?style=flat)](https://join.slack.com/t/ec-cube/shared_invite/enQtNDA1MDYzNDQxMTIzLTY5MTRhOGQ2MmZhMjQxYTAwMmVlMDc5MDU2NjJlZmFiM2E3M2Q0M2Y3OTRlMGY4NTQzN2JiZDBkNmQwNTUzYzc)
-
-**4.2からの更新内容は[リリースノート](https://github.com/EC-CUBE/ec-cube/releases/tag/4.3.0)をご確認ください。**
-
-+ 本ドキュメントはEC-CUBEの開発者を主要な対象者としております。
-+ パッケージ版は[EC-CUBEオフィシャルサイト](https://www.ec-cube.net)で配布しています。
-+ カスタマイズやEC-CUBEの利用、仕様に関しては[開発コミュニティ](https://xoops.ec-cube.net)をご利用ください。
-+ 本体開発にあたって不明点などあれば[Issue](https://github.com/EC-CUBE/ec-cube/wiki/Issues%E3%81%AE%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95)をご利用下さい。
-+ EC-CUBE 3系の保守については、 [EC-CUBE/ec-cube3](https://github.com/EC-CUBE/ec-cube3/)にて開発を行っております。
-+ EC-CUBE 2系の保守については、 [EC-CUBE/ec-cube2](https://github.com/EC-CUBE/ec-cube2/)にて開発を行っております。
-
-## インストール
-
-### EC-CUBE 4.3のインストール方法
-
-開発ドキュメントの [インストール方法](https://doc4.ec-cube.net/quickstart/install) の手順に従ってインストールしてください。
-
-### CSS の編集・ビルド方法
-
-[Sass](https://sass-lang.com) を使用して記述されています。
-Sass のソースコードは `html/template/{admin,default}/assets/scss` にあります。
-前提として [https://nodejs.org/ja/] より、 Node.js をインストールしておいてください。
-
-以下のコマンドでビルドすることで、 `html/template/**/assets/css` に CSS ファイルが出力されます。
-
-```shell
-npm ci # 初回およびpackage-lock.jsonに変更があったとき
-npm run build # Sass のビルド
+### 1. プロジェクトのクローン
+```bash
+git clone [repository-url]
+cd ec-cube
 ```
 
-[`docker compose` を使用している場合](https://doc4.ec-cube.net/quickstart/docker_compose_install)は以下のコマンドを実行してください
+### 2. Ansibleのインストール
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install ansible
 
-``` shell
-# 初回およびpackage-lock.jsonに変更があったとき
-docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.nodejs.yml run --rm -T nodejs npm ci
-# Sass のビルド
-docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.nodejs.yml run --rm -T nodejs npm run build
+# Python依存関係のインストール
+pip install ansible-core
 ```
 
-### JavaScript のビルド方法
-
-フロントエンドで使用する JavaScript のライブラリは npm で管理されています。
-JavaScript のライブラリは webpack でバンドル/minifyされます。
-バンドルするライブラリを変更する場合は、テンプレートごとに以下の bundle.js を修正し、リビルドしてください。
-- [html/template/admin/assets/js/bundle.js](html/template/admin/assets/js/bundle.js)
-- [html/template/default/assets/js/bundle.js](html/template/default/assets/js/bundle.js)
-- [html/template/install/assets/js/bundle.js](html/template/default/install/js/bundle.js)
-
-```shell
-npm ci # 初回およびpackage-lock.jsonに変更があったとき
-npm run build # Sass 及び JavaScript のビルド
+### 3. Ansible Playbook の実行
+```bash
+ansible-playbook ansible/playbooks/dev.yml -i ansible/hosts.ini
 ```
 
-JavaScript ライブラリのみをビルドしたい場合は以下でも可能です。
-
-```shell
-npx webpack
+### 4. テンプレートコードの設定
+`.env`ファイルを編集し、使用するテンプレートコードを設定します：
+```bash
+ECCUBE_TEMPLATE_CODE=target_template_code
 ```
 
-[`docker compose` を使用している場合](https://doc4.ec-cube.net/quickstart/docker_compose_install)は以下のコマンドを実行してください
+### 5. アセットの監視
+```bash
+yarn watch
+```
 
-``` shell
-# 初回およびpackage-lock.jsonに変更があったとき
-docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.nodejs.yml run --rm -T nodejs npm ci
-# Sass のビルド
-docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.nodejs.yml run --rm -T nodejs npm run build
-# JavaScript ライブラリのみのビルド
-docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.nodejs.yml run --rm -T nodejs npx webpack
+### 6. 開発サーバーの起動（既に起動中の場合は飛ばす）
+```bash
+symfony serve --allow-http --allow-all-ip -d
+```
+
+## Stimulus Controller の開発
+
+### コントローラーの作成
+コントローラーは `assets/controllers` ディレクトリに配置します。
+
+例：
+```typescript
+// assets/controllers/hello_controller.ts
+import { Controller } from '@hotwired/stimulus'
+
+export default class extends Controller<HTMLElement> {
+    static targets = [ "name" ]
+    declare nameTarget: HTMLInputElement
+
+    connect() {
+        console.log("Hello, Stimulus!", this.element)
+    }
+}
+```
+
+### コントローラーの使用
+```twig
+<div data-controller="hello">
+    <input data-hello-target="name">
+</div>
+```
+
+## Twigコンポーネントの開発
+
+### コンポーネントの場所
+デフォルトのコンポーネントディレクトリ：
+```
+templates/components/
+```
+
+### 基本的なコンポーネント
+```twig
+{# templates/components/alert.html.twig #}
+<div {{ attributes.defaults({class: 'alert'}) }}>
+    {{ content }}
+</div>
 ```
 
 
-### 動作確認環境
+## Live コンポーネントの開発
 
-* Apache 2.4.x (mod_rewrite / mod_ssl 必須)
-* PHP 8.1.x / 8.2.x / 8.3.x
-* PostgreSQL 12.x or higher / MySQL 8.0.x
-* ブラウザー：Google Chrome
+### PHPコンポーネントの作成
+コンポーネントは `app/Customize/Twig/Components` ディレクトリに配置します：
 
-詳しくは開発ドキュメントの [システム要件](https://doc4.ec-cube.net/quickstart/requirement) をご確認ください。
+```php
+// filepath: app/Customize/Twig/Components/LiveProductSearch.php
+namespace Customize\Twig\Components;
 
-## ドキュメント
+use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\DefaultActionTrait;
 
-### [EC-CUBE 4.x 開発ドキュメント@doc4.ec-cube.net](https://doc4.ec-cube.net/)
+#[AsLiveComponent()]
+class LiveProductSearch
+{
+    use DefaultActionTrait;
 
+    #[LiveProp(writable: true)]
+    public string $query = '';
 
-EC-CUBE 4.x 系の仕様や手順、開発Tipsに関するドキュメントを掲載しています。
-修正や追記、新規ドキュメントの作成をいただく場合、以下のレポジトリからPullRequestをお送りください。
-[https://github.com/EC-CUBE/doc4.ec-cube.net](https://github.com/EC-CUBE/doc4.ec-cube.net)
+    public function __construct(
+        private ProductRepository $productRepository,
+    ) {
+    }
 
-## 開発への参加
+    public function getProducts(): array
+    {
+        return $this->productRepository->findBy(['name' => $this->query]);
+    }
+}
+```
 
-EC-CUBE 4.3の不具合の修正、機能のブラッシュアップを目的として、継続的に開発を行っております。  
-コードのリファクタリング、不具合修正以外のPullRequestを送る際は、Pull Requestのコメントなどに意図を明確に記載してください。  
+### Twigテンプレートの作成
+```twig
+{# templates/components/live_product_search.html.twig #}
+<div>
+    <input 
+        type="text" 
+        name="query" 
+        value="{{ query }}"
+        data-model="query"
+    >
 
-Pull Requestの送信前に、Issueにて提議いただく事も可能です。
-Issuesの利用方法については、[こちら](https://github.com/EC-CUBE/ec-cube/wiki/Issues%E3%81%AE%E5%88%A9%E7%94%A8%E6%96%B9%E6%B3%95)をご確認ください。
+    <ul>
+        {% for product in this.products %}
+            <li>{{ product.name }}</li>
+        {% endfor %}
+    </ul>
+</div>
+```
 
-[Slack](https://join.slack.com/t/ec-cube/shared_invite/enQtNDA1MDYzNDQxMTIzLTY5MTRhOGQ2MmZhMjQxYTAwMmVlMDc5MDU2NjJlZmFiM2E3M2Q0M2Y3OTRlMGY4NTQzN2JiZDBkNmQwNTUzYzc)でも本体の開発に関する意見交換などを行っております。
+### コンポーネントの使用
+任意のTwigテンプレートで以下のように呼び出します：
 
+```twig
+<twig:component name="Customize:LiveProductSearch">
+    {# オプションでプロパティを渡すことができます #}
+    <twig:bind name="query">初期値</twig:bind>
+</twig:component>
+```
 
+### Live コンポーネントの重要な点
 
-### コピーライトポリシーへの同意
+1. **コンポーネントクラスの設定**
+   - `#[AsLiveComponent()]` アトリビュートを必ず付与
+   - `DefaultActionTrait` を使用
+   - 変更可能なプロパティには `#[LiveProp(writable: true)]` を設定
 
-コードの提供・追加、修正・変更その他「EC-CUBE」への開発の御協力（Issue投稿、Pull Request投稿など、GitHub上での活動）を行っていただく場合には、
-[EC-CUBEのコピーライトポリシー](https://github.com/EC-CUBE/ec-cube/wiki/EC-CUBE%E3%81%AE%E3%82%B3%E3%83%94%E3%83%BC%E3%83%A9%E3%82%A4%E3%83%88%E3%83%9D%E3%83%AA%E3%82%B7%E3%83%BC)をご理解いただき、ご了承いただく必要がございます。
-Issueの投稿やPull Requestを送信する際は、EC-CUBEのコピーライトポリシーに同意したものとみなします。
+2. **命名規則**
+   - PHPクラス: `組織名\Twig\Components` 名前空間に配置
+   - Twigテンプレート: `templates/components/` に配置
+   - ファイル名はクラス名をスネークケースに変換
+
+3. **データバインディング**
+   - `data-model`: 双方向バインディング
+   - `data-action`: イベントハンドリング
+   - `this.メソッド名`: コンポーネントのメソッドアクセス
+
+4. **ライフサイクル**
+   - コンポーネントは状態を保持
+   - プロパティの変更で自動的に再レンダリング
+   - `mount()` メソッドで初期化処理が可能
+
+5. **ベストプラクティス**
+   - 単一責任の原則に従う
+   - 適切なバリデーションの実装
+   - パフォーマンスを考慮したクエリの作成
+
+## 開発の注意点
+
+1. コントローラーの命名規則
+   - キャメルケースで記述
+   - ファイル名は `_controller.js` で終わる
+
+2. コンポーネントのベストプラクティス
+   - 再利用可能なコンポーネントを心がける
+   - props の型を明確にする
+   - コンポーネントは単一責任の原則に従う
+
+3. アセットビルド
+   - 開発時は `yarn watch` を常時実行
+   - 本番ビルドは `yarn build` を使用
+
+4. デバッグ
+   - Symfony プロファイラーを活用
+   - ブラウザの開発者ツールでStimulusデバッグ
+
+## トラブルシューティング
+
+- **Stimulusコントローラーが動作しない場合**
+  - コントローラー名とDOM要素の`data-controller`属性が一致しているか確認
+  - JavaScriptコンソールでエラーを確認
+
+- **コンポーネントが表示されない場合**
+  - キャッシュのクリア: `php bin/console cache:clear`
+  - テンプレートパスが正しいか確認
+
+- **アセットビルドエラー**
+  - `node_modules`を削除して`yarn install`を再実行
+  - Webpackのログを確認
