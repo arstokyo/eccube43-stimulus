@@ -1,0 +1,97 @@
+- name: Install common dependencies
+  apt:
+    name:
+      - git
+      - curl
+      - unzip
+      - php
+      - php-cli
+      - php-mbstring
+      - php-xml
+      - php-mysql
+      - php-zip
+    state: present
+    update_cache: yes
+
+- name: Ensure necessary directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /var/www/ec-cube
+    - /var/www/ec-cube/var
+    - /var/www/ec-cube/public
+
+- name: Copy .env file from template
+  template:
+    src: .env.j2
+    dest: /var/www/ec-cube/.env
+    owner: www-data
+    group: www-data
+    mode: '0644'
+
+- name: Set permissions for the web directory
+  file:
+    path: /var/www/ec-cube
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Install Composer
+  command: curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  args:
+    creates: /usr/local/bin/composer
+
+- name: Install PHP dependencies using Composer
+  command: composer install --no-dev
+  args:
+    chdir: /var/www/ec-cube
+
+- name: Clear Symfony cache
+  command: php bin/console cache:clear
+  args:
+    chdir: /var/www/ec-cube
+
+- name: Set up database
+  command: php bin/console doctrine:database:create
+  args:
+    chdir: /var/www/ec-cube
+
+- name: Run migrations
+  command: php bin/console doctrine:migrations:migrate --no-interaction
+  args:
+    chdir: /var/www/ec-cube
+
+- name: Set up web server configuration
+  template:
+    src: web_server.conf.j2
+    dest: /etc/nginx/sites-available/ec-cube
+  notify:
+    - Reload nginx
+
+- name: Enable site
+  command: nginx -s reload
+  args:
+    warn: false
+
+- name: Ensure nginx is running
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: Ensure php-fpm is running
+  service:
+    name: php7.4-fpm
+    state: started
+    enabled: yes
+
+- name: Ensure firewall allows HTTP and HTTPS
+  ufw:
+    rule: allow
+    name: "{{ item }}"
+  loop:
+    - 'Nginx Full'
+    - 'OpenSSH'

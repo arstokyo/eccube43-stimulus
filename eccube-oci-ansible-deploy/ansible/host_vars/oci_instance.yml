@@ -1,0 +1,21 @@
+hostname: oci-instance
+ip_address: 192.168.0.100
+ssh_user: opc
+ssh_private_key: /path/to/private/key
+oci_region: us-ashburn-1
+oci_tenancy_id: your_tenancy_id
+oci_user_id: your_user_id
+oci_fingerprint: your_fingerprint
+oci_private_key_path: /path/to/oci_private_key.pem
+oci_compartment_id: your_compartment_id
+oci_instance_shape: VM.Standard2.1
+oci_image_id: your_image_id
+oci_subnet_id: your_subnet_id
+oci_vcn_id: your_vcn_id
+oci_instance_name: eccube-instance
+oci_instance_metadata:
+  ssh_authorized_keys: |
+    ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAr... your_public_key
+  user_data: |
+    #!/bin/bash
+    echo "Running user data script" > /var/log/user-data.log

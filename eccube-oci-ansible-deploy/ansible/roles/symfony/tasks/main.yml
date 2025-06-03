@@ -1,0 +1,53 @@
+- name: Install Composer
+  get_url:
+    url: https://getcomposer.org/installer
+    dest: /tmp/composer-installer.php
+  register: composer_installer
+
+- name: Install Composer globally
+  command: php /tmp/composer-installer.php --install-dir=/usr/local/bin --filename=composer
+  when: composer_installer is succeeded
+
+- name: Ensure Symfony directory exists
+  file:
+    path: /var/www/ec-cube
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+
+- name: Clone EC-CUBE repository
+  git:
+    repo: 'https://github.com/EC-CUBE/EC-CUBE.git'
+    dest: /var/www/ec-cube
+    version: master
+    force: yes
+
+- name: Install PHP dependencies
+  command: composer install --no-dev --optimize-autoloader
+  args:
+    chdir: /var/www/ec-cube
+
+- name: Set permissions for storage and cache
+  file:
+    path: /var/www/ec-cube/var/{{ item }}
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0777'
+  loop:
+    - cache
+    - log
+    - sessions
+
+- name: Configure web server
+  template:
+    src: parameters.yml.j2
+    dest: /var/www/ec-cube/app/config/parameters.yml
+  notify: Restart web server
+
+- name: Restart web server
+  service:
+    name: apache2
+    state: restarted
+  when: ansible_os_family == "Debian"

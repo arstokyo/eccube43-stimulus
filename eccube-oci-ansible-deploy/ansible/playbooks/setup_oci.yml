@@ -1,0 +1,58 @@
+---
+- name: Setup OCI Environment
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Create OCI instance
+      oci_instance:
+        name: "{{ oci_instance_name }}"
+        availability_domain: "{{ availability_domain }}"
+        compartment_id: "{{ compartment_id }}"
+        shape: "{{ instance_shape }}"
+        image: "{{ image_id }}"
+        ssh_keys: "{{ lookup('file', ssh_key_path) }}"
+        wait_for_state: true
+      register: instance
+
+    - name: Configure networking
+      oci_vcn:
+        compartment_id: "{{ compartment_id }}"
+        display_name: "{{ vcn_name }}"
+        cidr_block: "{{ vcn_cidr }}"
+      register: vcn
+
+    - name: Create subnet
+      oci_subnet:
+        compartment_id: "{{ compartment_id }}"
+        vcn_id: "{{ vcn.id }}"
+        display_name: "{{ subnet_name }}"
+        cidr_block: "{{ subnet_cidr }}"
+        availability_domain: "{{ availability_domain }}"
+      register: subnet
+
+    - name: Install necessary software
+      ansible.builtin.yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - git
+        - nginx
+        - php
+        - php-fpm
+        - php-mysqlnd
+
+    - name: Start and enable nginx
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Start and enable php-fpm
+      ansible.builtin.service:
+        name: php-fpm
+        state: started
+        enabled: true
+
+    - name: Output instance details
+      debug:
+        msg: "Instance created with ID: {{ instance.id }} and public IP: {{ instance.public_ip }}"

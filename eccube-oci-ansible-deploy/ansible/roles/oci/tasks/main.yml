@@ -1,0 +1,35 @@
+- name: Create OCI instance
+  oci_instance:
+    name: "{{ oci_instance_name }}"
+    compartment_id: "{{ oci_compartment_id }}"
+    availability_domain: "{{ oci_availability_domain }}"
+    shape: "{{ oci_shape }}"
+    image: "{{ oci_image }}"
+    ssh_keys: "{{ lookup('file', oci_ssh_key_path) }}"
+    subnet_id: "{{ oci_subnet_id }}"
+    assign_public_ip: true
+  register: instance
+
+- name: Wait for instance to be running
+  oci_instance_facts:
+    instance_id: "{{ instance.id }}"
+  register: instance_facts
+  until: instance_facts.instance.lifecycle_state == 'RUNNING'
+  retries: 10
+  delay: 30
+
+- name: Configure instance
+  include_tasks: configure_instance.yml
+  when: instance_facts.instance.lifecycle_state == 'RUNNING'
+
+- name: Install necessary software
+  include_tasks: install_software.yml
+
+- name: Deploy application
+  include_tasks: deploy_application.yml
+
+- name: Clean up
+  oci_instance:
+    instance_id: "{{ instance.id }}"
+    state: absent
+  when: cleanup_on_failure | default(false)

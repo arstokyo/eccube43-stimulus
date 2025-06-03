@@ -1,0 +1,43 @@
+---
+- name: Deploy EC-CUBE Symfony Application to OCI
+  hosts: oci_instance
+  become: yes
+  roles:
+    - common
+    - symfony
+    - oci
+  tasks:
+    - name: Ensure the application is up to date
+      ansible.builtin.git:
+        repo: 'https://github.com/your-repo/eccube.git'
+        dest: /var/www/ec-cube
+        version: master
+
+    - name: Install Composer dependencies
+      command: composer install
+      args:
+        chdir: /var/www/ec-cube
+
+    - name: Clear Symfony cache
+      command: php bin/console cache:clear
+      args:
+        chdir: /var/www/ec-cube
+
+    - name: Run database migrations
+      command: php bin/console doctrine:migrations:migrate --no-interaction
+      args:
+        chdir: /var/www/ec-cube
+
+    - name: Set permissions for web server
+      file:
+        path: /var/www/ec-cube
+        owner: www-data
+        group: www-data
+        mode: 'u=rwx,g=rx,o=rx'
+        recurse: yes
+
+    - name: Restart web server
+      service:
+        name: apache2
+        state: restarted
+...

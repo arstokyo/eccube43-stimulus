@@ -1,0 +1,15 @@
+# Contents of /eccube-oci-ansible-deploy/eccube-oci-ansible-deploy/ansible/roles/oci/templates/oci_config.j2
+
+[DEFAULT]
+user={{ oci_user }}
+fingerprint={{ oci_fingerprint }}
+key_file={{ oci_key_file }}
+tenancy={{ oci_tenancy }}
+region={{ oci_region }}
+
+[INSTANCE]
+instance_id={{ oci_instance_id }}
+availability_domain={{ oci_availability_domain }}
+shape={{ oci_shape }}
+subnet_id={{ oci_subnet_id }}
+display_name={{ oci_display_name }}
