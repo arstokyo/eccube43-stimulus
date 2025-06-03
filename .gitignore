@@ -61,3 +61,4 @@ yarn-error.log
 ###< symfony/webpack-encore-bundle ###
 
 !/html/template/ars
+!/app/template/ars
