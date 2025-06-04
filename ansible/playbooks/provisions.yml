@@ -53,14 +53,14 @@
         COMPOSER_MEMORY_LIMIT: -1
 
     - name: Install npm packages
-      command: npm install --force
+      command: npm install
       args:
         chdir: "{{ project_root }}"
       become: yes
       become_user: "{{ ansible_user }}"
       environment:
         NODE_OPTIONS: "--max-old-space-size=4096"
-
+        
     - name: Build assets with yarn
       command: yarn build
       args:
