@@ -34,9 +34,12 @@ file that was distributed with this source code.
     {% endif %}
     <link rel="icon" href="{{ asset('assets/img/common/favicon.ico', 'user_data') }}">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.2/css/all.css" integrity="sha384-PPIZEGYM1v8zp5Py7UjFb79S58UeqCL9pYVnVPURKEqvioPROaVAJKKLzvH2rDnI" crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
     {{ encore_entry_script_tags('ars') }}
+    {{ encore_entry_script_tags('stimulus') }}
+
     {{ encore_entry_link_tags('ars') }}
+    {{ encore_entry_link_tags('stimulus') }}
+    {{ encore_entry_link_tags('front-css') }}
     {% block stylesheet %}{% endblock %}
     <script>
         $(function() {
@@ -178,8 +181,10 @@ file that was distributed with this source code.
 </div>
 <div class="ec-blockTopBtn pagetop">{{'common.pagetop'|trans}}</div>
 {% include('@common/lang.twig') %}
-<script src="{{ asset('assets/js/function.js') }}"></script>
-<script src="{{ asset('assets/js/eccube.js') }}"></script>
+{{ encore_entry_script_tags('eccube-function') }}
+{{ encore_entry_script_tags('eccube-js') }}
+{{ encore_entry_link_tags('eccube-function') }}
+{{ encore_entry_link_tags('eccube-js') }}
 {% block javascript %}{% endblock %}
 {# Layout: CLOSE_BODY_BEFORE #}
 {% if Layout.CloseBodyBefore %}
