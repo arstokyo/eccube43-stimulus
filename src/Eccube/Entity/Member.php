@@ -72,7 +72,7 @@ if (!class_exists(Member::class)) {
         /**
          * {@inheritdoc}
          */
-        public function eraseCredentials()
+        public function eraseCredentials(): void
         {
         }
 

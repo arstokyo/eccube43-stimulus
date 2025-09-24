@@ -348,7 +348,7 @@ if (!class_exists(Customer::class)) {
         /**
          * {@inheritdoc}
          */
-        public function eraseCredentials()
+        public function eraseCredentials(): void
         {
         }
 
