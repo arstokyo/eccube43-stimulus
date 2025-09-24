@@ -64,17 +64,39 @@ if (file_exists($maintenanceFile)) {
     $adminPath = env('ECCUBE_ADMIN_ROUTE', 'admin');
     $adminPath = '/'.\trim($adminPath, '/').'/';
     if (\strpos($pathInfo, $adminPath) !== 0) {
-        $maintenanceContents = file_get_contents($maintenanceFile);
-        $maintenanceToken = explode(':', $maintenanceContents)[1] ?? null;
-        $tokenInCookie = $request->cookies->get(SystemService::MAINTENANCE_TOKEN_KEY);
-        if ($tokenInCookie === null || $tokenInCookie !== $maintenanceToken) {
-            $locale = env('ECCUBE_LOCALE');
-            $templateCode = env('ECCUBE_TEMPLATE_CODE');
-            $baseUrl = \htmlspecialchars(\rawurldecode($request->getBaseUrl()), ENT_QUOTES);
 
-            header('HTTP/1.1 503 Service Temporarily Unavailable');
-            require __DIR__.'/maintenance.php';
-            return;
+        // Get client IP considering possible proxies
+        $forwardedFor = $request->headers->get('X-Forwarded-For');
+        $realIp = $request->headers->get('X-Real-IP');
+        $clientIp = $request->getClientIp();
+
+        // Use the first IP in X-Forwarded-For if multiple IPs are present
+        // $connectionIP = $forwardedFor ?: ($realIp ?: $clientIp);
+        $connectionIP = $clientIp; // If the TRUSTED_PROXIES setting is correct, $clientIp is sufficient.
+
+        // Allowlist IPs to bypass maintenance (comma-separated, supports CIDR)
+        $allowedIpsEnv = env('ECCUBE_MAINTENANCE_ALLOWED_IPS', '');
+        $skipByIp = false;
+        if ($allowedIpsEnv) {
+            $allowedIps = array_filter(array_map('trim', explode(',', $allowedIpsEnv)));
+            if (!empty($allowedIps) && \Symfony\Component\HttpFoundation\IpUtils::checkIp($connectionIP, $allowedIps)) {
+                $skipByIp = true;
+            }
+        }
+
+        if (!$skipByIp) {
+            $maintenanceContents = file_get_contents($maintenanceFile);
+            $maintenanceToken = explode(':', $maintenanceContents)[1] ?? null;
+            $tokenInCookie = $request->cookies->get(SystemService::MAINTENANCE_TOKEN_KEY);
+            if ($tokenInCookie === null || $tokenInCookie !== $maintenanceToken) {
+                $locale = env('ECCUBE_LOCALE');
+                $templateCode = env('ECCUBE_TEMPLATE_CODE');
+                $baseUrl = \htmlspecialchars(\rawurldecode($request->getBaseUrl()), ENT_QUOTES);
+
+                header('HTTP/1.1 503 Service Temporarily Unavailable');
+                require __DIR__.'/maintenance.php';
+                return;
+            }
         }
     }
 }
