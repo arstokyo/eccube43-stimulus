@@ -16,140 +16,199 @@ namespace Eccube\Session\Storage\Handler;
 use Skorp\Dissua\SameSite;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Session\Storage\Handler\StrictSessionHandler;
 
-class SameSiteNoneCompatSessionHandler extends StrictSessionHandler
+/**
+ * SameSite=None 互換を提供するセッションハンドラのラッパー.
+ *
+ * 注意:
+ * - もともと StrictSessionHandler を継承していましたが、MemcachedSessionHandler が
+ *   SessionUpdateTimestampHandlerInterface を実装している環境ではラップ禁止の例外が発生するため、
+ *   本クラスはインターフェース実装＋委譲方式に変更しています。
+ * - セッションの実体処理は委譲先($handler)に任せ、本クラスはクッキー属性や destroy 時の
+ *   SameSite=None 対応に専念します。
+ */
+class SameSiteNoneCompatSessionHandler implements \SessionHandlerInterface, \SessionUpdateTimestampHandlerInterface
 {
     /** @var \SessionHandlerInterface */
     private $handler;
-    /** @var bool */
-    private $doDestroy;
+
     /** @var string */
     private $sessionName;
-    /** @var string */
-    private $newSessionId;
 
-    /**
-     *  {@inheritdoc}
-     */
+    /** @var bool */
+    private $debugMode;
+
     public function __construct(\SessionHandlerInterface $handler)
     {
-        parent::__construct($handler);
-
         $this->handler = $handler;
+        $this->debugMode = (bool) env('APP_DEBUG', false);
 
         if (!headers_sent()) {
+            // 追加: 任意の cookie_domain を環境変数から適用可能に
+            $cookieDomainEnv = env('ECCUBE_COOKIE_DOMAIN', '');
+            if ($cookieDomainEnv !== '') {
+                ini_set('session.cookie_domain', $cookieDomainEnv);
+            }
+
+            // 既存の設定（維持）
             ini_set('session.cookie_secure', $this->getCookieSecure());
             ini_set('session.cookie_samesite', $this->getCookieSameSite());
             ini_set('session.cookie_path', $this->getCookiePath());
+            ini_set('session.cookie_httponly', '1');
+
+            // 追加: クロスサーバ安定化のための推奨オプション（非破壊）
+            ini_set('session.gc_maxlifetime', (string) env('ECCUBE_GC_MAXLIFETIME', '3600'));
+            ini_set('session.cookie_lifetime', '0');
+            ini_set('session.use_cookies', '1');
+            ini_set('session.use_only_cookies', '1');
+            ini_set('session.use_strict_mode', '1');
+
+            // セッション名統一（既存の値優先）
+            $sessionName = env('ECCUBE_COOKIE_NAME', ini_get('session.name') ?: 'eccube');
+            ini_set('session.name', $sessionName);
         }
     }
 
     /**
-     * {@inheritdoc}
+     * リクエストに乗ってきたセッションCookie値（もしあれば）を取得（デバッグ用）
      */
+    private function getRequestCookieSessionId(): ?string
+    {
+        $request = Request::createFromGlobals();
+        $cookieName = $this->sessionName ?: (ini_get('session.name') ?: 'PHPSESSID');
+
+        return $request->cookies->get($cookieName);
+    }
+
     #[\ReturnTypeWillChange]
     public function open($savePath, $sessionName): bool
     {
         $this->sessionName = $sessionName;
-        // see https://github.com/symfony/symfony/blob/2adc85d49cbe14e346068fa7e9c2e1f08ab31de6/src/Symfony/Component/HttpFoundation/Session/Storage/Handler/AbstractSessionHandler.php#L35-L37
-        if (!headers_sent() && !ini_get('session.cache_limiter') && '0' !== ini_get('session.cache_limiter')) {
-            header(sprintf('Cache-Control: max-age=%d, private, must-revalidate', 60 * (int) ini_get('session.cache_expire')));
+
+        if ($this->debugMode) {
+            $cookieSid = $this->getRequestCookieSessionId();
+            error_log(sprintf(
+                '[Session][%s] open: name=%s cookieSid=%s phpSessionId(before)=%s',
+                gethostname(),
+                $sessionName,
+                $cookieSid ?? '(none)',
+                session_id() ?: '(empty)'
+            ));
         }
 
-        return $this->handler->open($savePath, $sessionName);
+        $result = $this->handler->open($savePath, $sessionName);
+
+        if (!$result && $this->debugMode) {
+            error_log(sprintf('[Session][%s] open: handler open failed', gethostname()));
+        }
+
+        return $result;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function doRead($sessionId): string
+    public function read(string $sessionId): string
     {
-        return $this->handler->read($sessionId);
+        try {
+            $data = $this->handler->read($sessionId);
+
+            if ($this->debugMode) {
+                $cookieSid = $this->getRequestCookieSessionId();
+                $hasData = ($data !== '');
+                error_log(sprintf(
+                    '[Session][%s] read: id=%s hasData=%s size=%d cookieSid=%s',
+                    gethostname(),
+                    $sessionId,
+                    $hasData ? 'YES' : 'NO',
+                    strlen($data),
+                    $cookieSid ?? '(none)'
+                ));
+
+                if ($hasData) {
+                    $sessionData = @unserialize($data);
+                    if (is_array($sessionData)) {
+                        $hasCsrfKey = array_key_exists('_csrf', $sessionData) || array_key_exists('_token', $sessionData);
+                        error_log(sprintf('[Session][%s] read: hasCsrfKey=%s', gethostname(), $hasCsrfKey ? 'YES' : 'NO'));
+                    }
+                }
+            }
+
+            return $data;
+        } catch (\Exception $e) {
+            if ($this->debugMode) {
+                error_log(sprintf('[Session][%s] read error: id=%s err=%s', gethostname(), $sessionId, $e->getMessage()));
+            }
+
+            return '';
+        }
     }
 
-    /**
-     * {@inheritdoc}
-     */
+    public function write(string $sessionId, string $data): bool
+    {
+        try {
+            $result = $this->handler->write($sessionId, $data);
+
+            if (!$result) {
+                error_log(sprintf('[Session][%s] CRITICAL: write failed id=%s', gethostname(), $sessionId));
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            error_log(sprintf('[Session][%s] write error: id=%s err=%s', gethostname(), $sessionId, $e->getMessage()));
+
+            return false;
+        }
+    }
+
     #[\ReturnTypeWillChange]
     public function updateTimestamp($sessionId, $data): bool
     {
-        return $this->write($sessionId, $data);
+        try {
+            if ($this->handler instanceof \SessionUpdateTimestampHandlerInterface) {
+                $result = $this->handler->updateTimestamp($sessionId, $data);
+            } else {
+                $result = $this->write($sessionId, $data);
+            }
+
+            if ($this->debugMode) {
+                error_log(sprintf(
+                    '[Session][%s] updateTimestamp: id=%s success=%s',
+                    gethostname(),
+                    $sessionId,
+                    $result ? 'YES' : 'NO'
+                ));
+            }
+
+            return $result;
+        } catch (\Exception $e) {
+            error_log(sprintf('[Session][%s] updateTimestamp error: id=%s err=%s', gethostname(), $sessionId, $e->getMessage()));
+
+            return false;
+        }
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function doWrite($sessionId, $data): bool
-    {
-        return $this->handler->write($sessionId, $data);
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @see https://github.com/symfony/symfony/blob/2adc85d49cbe14e346068fa7e9c2e1f08ab31de6/src/Symfony/Component/HttpFoundation/Session/Storage/Handler/AbstractSessionHandler.php#L126-L167
-     */
-    #[\ReturnTypeWillChange]
     public function destroy($sessionId): bool
     {
-        if (!headers_sent() && filter_var(ini_get('session.use_cookies'), FILTER_VALIDATE_BOOLEAN)) {
-            if (!$this->sessionName) {
-                throw new \LogicException(sprintf('Session name cannot be empty, did you forget to call "parent::open()" in "%s"?.', \get_class($this)));
-            }
-            $sessionCookie = sprintf(' %s=', urlencode($this->sessionName));
-            $sessionCookieWithId = sprintf('%s%s;', $sessionCookie, urlencode($sessionId));
-            $sessionCookieFound = false;
-            $otherCookies = [];
-            foreach (headers_list() as $h) {
-                if (0 !== stripos($h, 'Set-Cookie:')) {
-                    continue;
-                }
-                if (11 === strpos($h, $sessionCookie, 11)) {
-                    $sessionCookieFound = true;
-
-                    if (11 !== strpos($h, $sessionCookieWithId, 11)) {
-                        $otherCookies[] = $h;
-                    }
-                } else {
-                    $otherCookies[] = $h;
-                }
-            }
-            if ($sessionCookieFound) {
-                header_remove('Set-Cookie');
-                foreach ($otherCookies as $h) {
-                    header($h, false);
-                }
-            } else {
-                setcookie($this->sessionName, '',
-                    [
-                        'expires' => 0,
-                        'path' => $this->getCookiePath(),
-                        'domain' => ini_get('session.cookie_domain'),
-                        'secure' => filter_var(ini_get('session.cookie_secure'), FILTER_VALIDATE_BOOLEAN),
-                        'httponly' => filter_var(ini_get('session.cookie_httponly'), FILTER_VALIDATE_BOOLEAN),
-                        'samesite' => $this->getCookieSameSite(),
-                    ]
-                );
-            }
+        if ($this->debugMode) {
+            error_log(sprintf('[Session][%s] destroy: id=%s', gethostname(), $sessionId));
         }
 
-        return $this->newSessionId === $sessionId || $this->doDestroy($sessionId);
-    }
+        if (!headers_sent() && filter_var(ini_get('session.use_cookies'), FILTER_VALIDATE_BOOLEAN)) {
+            if (!$this->sessionName) {
+                throw new \LogicException(sprintf('Session name cannot be empty, did you forget to call "open()" in "%s"?.', \get_class($this)));
+            }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function doDestroy($sessionId): bool
-    {
-        $this->doDestroy = false;
+            setcookie($this->sessionName, '', [
+                'expires' => time() - 3600,
+                'path' => $this->getCookiePath(),
+                'domain' => ini_get('session.cookie_domain'),
+                'secure' => filter_var(ini_get('session.cookie_secure'), FILTER_VALIDATE_BOOLEAN),
+                'httponly' => filter_var(ini_get('session.cookie_httponly'), FILTER_VALIDATE_BOOLEAN),
+                'samesite' => $this->getCookieSameSite(),
+            ]);
+        }
 
         return $this->handler->destroy($sessionId);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function close(): bool
     {
         return $this->handler->close();
@@ -164,9 +223,20 @@ class SameSiteNoneCompatSessionHandler extends StrictSessionHandler
         return $this->handler->gc($maxlifetime);
     }
 
-    /**
-     * @return string
-     */
+    public function validateId(string $id): bool
+    {
+        if ($this->handler instanceof \SessionUpdateTimestampHandlerInterface) {
+            return $this->handler->validateId($id);
+        }
+
+        if ($id === '' || !is_string($id)) {
+            return false;
+        }
+
+        return \preg_match('/^[A-Za-z0-9,-]{1,128}$/', $id) === 1;
+    }
+
+    // 既存ヘルパ（維持）
     public function getCookieSameSite()
     {
         if ($this->shouldSendSameSiteNone() && $this->getCookieSecure()) {
@@ -176,17 +246,11 @@ class SameSiteNoneCompatSessionHandler extends StrictSessionHandler
         return '';
     }
 
-    /**
-     * @return string
-     */
     public function getCookiePath()
     {
         return env('ECCUBE_COOKIE_PATH', '/');
     }
 
-    /**
-     * @return string
-     */
     public function getCookieSecure()
     {
         $request = Request::createFromGlobals();
@@ -194,9 +258,6 @@ class SameSiteNoneCompatSessionHandler extends StrictSessionHandler
         return $request->isSecure() ? '1' : '0';
     }
 
-    /**
-     * @return bool
-     */
     private function shouldSendSameSiteNone()
     {
         $userAgent = array_key_exists('HTTP_USER_AGENT', $_SERVER) ? $_SERVER['HTTP_USER_AGENT'] : null;
