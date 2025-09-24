@@ -76,6 +76,8 @@ DirectoryIndex index.php index.html .ht
     RewriteRule "^dockerbuild/" - [F]
     RewriteRule "^\.devcontainer/" - [F]
     RewriteRule "^zap/" - [F]
+    RewriteRule "^assets/" - [F]
+    RewriteRule "^ansible/" - [F]
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !^(.*)\.(gif|png|jpe?g|css|ico|js|svg|map|webp|avif|bmp)$ [NC]
