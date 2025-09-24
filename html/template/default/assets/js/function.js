@@ -9,8 +9,20 @@
  * file that was distributed with this source code.
 */
 
-$(function() {
+// Define the function and immediately attach it to window
+window.loadingOverlay = function(action) {
+    if (action == 'hide') {
+        $('.bg-load-overlay').remove();
+    } else {
+        $overlay = $('<div class="bg-load-overlay">');
+        $('body').append($overlay);
+    }
+};
 
+// Create local reference for internal use
+const loadingOverlay = window.loadingOverlay;
+
+$(function() {
     $('.pagetop').hide();
 
     $(window).on('scroll', function() {
@@ -100,16 +112,11 @@ $(function() {
     });
 
     // スマホのドロワーメニュー内の下層カテゴリ表示
-    // TODO FIXME スマホのカテゴリ表示方法
-    $('.ec-itemNav ul a').click(function() {
+    $('.ec-itemNav .toggle').click(function() {
         var child = $(this).siblings();
         if (child.length > 0) {
-            if (child.is(':visible')) {
-                return true;
-            } else {
-                child.slideToggle();
-                return false;
-            }
+            child.slideToggle();
+            return false;
         }
     });
 
@@ -145,33 +152,20 @@ $(function() {
 });
 
 $(window).on('pageshow', function() {
-    loadingOverlay('hide');
+    window.loadingOverlay('hide');
 });
 
-/**
- * オーバーレイ処理を行う関数
- */
-function loadingOverlay(action) {
-
-    if (action == 'hide') {
-        $('.bg-load-overlay').remove();
-    } else {
-        $overlay = $('<div class="bg-load-overlay">');
-        $('body').append($overlay);
-    }
-}
-
-/**
- *  要素FORMチェック
- */
-function getAncestorOfTagType(elem, type) {
-
+// Make other utility functions global too
+window.getAncestorOfTagType = function(elem, type) {
     while (elem.parentNode && elem.tagName !== type) {
         elem = elem.parentNode;
     }
 
     return (type === elem.tagName) ? elem : undefined;
-}
+};
+
+// Create local reference
+const getAncestorOfTagType = window.getAncestorOfTagType;
 
 // anchorをクリックした時にformを裏で作って指定のメソッドでリクエストを飛ばす
 // Twigには以下のように埋め込む
