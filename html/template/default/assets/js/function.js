@@ -112,11 +112,16 @@ $(function() {
     });
 
     // スマホのドロワーメニュー内の下層カテゴリ表示
-    $('.ec-itemNav .toggle').click(function() {
+    // TODO FIXME スマホのカテゴリ表示方法
+    $('.ec-itemNav ul a').click(function() {
         var child = $(this).siblings();
         if (child.length > 0) {
-            child.slideToggle();
-            return false;
+            if (child.is(':visible')) {
+                return true;
+            } else {
+                child.slideToggle();
+                return false;
+            }
         }
     });
 
